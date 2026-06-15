@@ -4,6 +4,8 @@ public class ApiResponse<T> {
     private int code;
     private String message;
     private T data;
+    private Double overloadWeightKg;
+    private Double maxWeightKg;
 
     public static <T> ApiResponse<T> success(T data) {
         ApiResponse<T> response = new ApiResponse<>();
@@ -20,6 +22,11 @@ public class ApiResponse<T> {
         return response;
     }
 
+    public void setOverloadInfo(double weightKg, double maxKg) {
+        this.overloadWeightKg = weightKg;
+        this.maxWeightKg = maxKg;
+    }
+
     public int getCode() { return code; }
     public void setCode(int code) { this.code = code; }
 
@@ -28,4 +35,10 @@ public class ApiResponse<T> {
 
     public T getData() { return data; }
     public void setData(T data) { this.data = data; }
+
+    public Double getOverloadWeightKg() { return overloadWeightKg; }
+    public void setOverloadWeightKg(Double overloadWeightKg) { this.overloadWeightKg = overloadWeightKg; }
+
+    public Double getMaxWeightKg() { return maxWeightKg; }
+    public void setMaxWeightKg(Double maxWeightKg) { this.maxWeightKg = maxWeightKg; }
 }

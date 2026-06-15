@@ -19,11 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GarageService_RotateCarrier_FullMethodName       = "/garage.GarageService/RotateCarrier"
-	GarageService_GetCarrierStatus_FullMethodName    = "/garage.GarageService/GetCarrierStatus"
-	GarageService_GetWeightStatus_FullMethodName     = "/garage.GarageService/GetWeightStatus"
-	GarageService_EmergencyStop_FullMethodName       = "/garage.GarageService/EmergencyStop"
-	GarageService_StreamCarrierStatus_FullMethodName = "/garage.GarageService/StreamCarrierStatus"
+	GarageService_RotateCarrier_FullMethodName          = "/garage.GarageService/RotateCarrier"
+	GarageService_GetCarrierStatus_FullMethodName       = "/garage.GarageService/GetCarrierStatus"
+	GarageService_GetWeightStatus_FullMethodName        = "/garage.GarageService/GetWeightStatus"
+	GarageService_ReadGroundScale_FullMethodName        = "/garage.GarageService/ReadGroundScale"
+	GarageService_SetGroundScaleOverride_FullMethodName = "/garage.GarageService/SetGroundScaleOverride"
+	GarageService_EmergencyStop_FullMethodName          = "/garage.GarageService/EmergencyStop"
+	GarageService_StreamCarrierStatus_FullMethodName    = "/garage.GarageService/StreamCarrierStatus"
 )
 
 // GarageServiceClient is the client API for GarageService service.
@@ -33,6 +35,8 @@ type GarageServiceClient interface {
 	RotateCarrier(ctx context.Context, in *RotateRequest, opts ...grpc.CallOption) (*RotateResponse, error)
 	GetCarrierStatus(ctx context.Context, in *GetCarrierStatusRequest, opts ...grpc.CallOption) (*GetCarrierStatusResponse, error)
 	GetWeightStatus(ctx context.Context, in *GetWeightStatusRequest, opts ...grpc.CallOption) (*GetWeightStatusResponse, error)
+	ReadGroundScale(ctx context.Context, in *ReadGroundScaleRequest, opts ...grpc.CallOption) (*ReadGroundScaleResponse, error)
+	SetGroundScaleOverride(ctx context.Context, in *SetGroundScaleOverrideRequest, opts ...grpc.CallOption) (*SetGroundScaleOverrideResponse, error)
 	EmergencyStop(ctx context.Context, in *EmergencyStopRequest, opts ...grpc.CallOption) (*EmergencyStopResponse, error)
 	StreamCarrierStatus(ctx context.Context, in *StreamCarrierStatusRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CarrierStatusUpdate], error)
 }
@@ -75,6 +79,26 @@ func (c *garageServiceClient) GetWeightStatus(ctx context.Context, in *GetWeight
 	return out, nil
 }
 
+func (c *garageServiceClient) ReadGroundScale(ctx context.Context, in *ReadGroundScaleRequest, opts ...grpc.CallOption) (*ReadGroundScaleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadGroundScaleResponse)
+	err := c.cc.Invoke(ctx, GarageService_ReadGroundScale_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *garageServiceClient) SetGroundScaleOverride(ctx context.Context, in *SetGroundScaleOverrideRequest, opts ...grpc.CallOption) (*SetGroundScaleOverrideResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetGroundScaleOverrideResponse)
+	err := c.cc.Invoke(ctx, GarageService_SetGroundScaleOverride_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *garageServiceClient) EmergencyStop(ctx context.Context, in *EmergencyStopRequest, opts ...grpc.CallOption) (*EmergencyStopResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EmergencyStopResponse)
@@ -111,6 +135,8 @@ type GarageServiceServer interface {
 	RotateCarrier(context.Context, *RotateRequest) (*RotateResponse, error)
 	GetCarrierStatus(context.Context, *GetCarrierStatusRequest) (*GetCarrierStatusResponse, error)
 	GetWeightStatus(context.Context, *GetWeightStatusRequest) (*GetWeightStatusResponse, error)
+	ReadGroundScale(context.Context, *ReadGroundScaleRequest) (*ReadGroundScaleResponse, error)
+	SetGroundScaleOverride(context.Context, *SetGroundScaleOverrideRequest) (*SetGroundScaleOverrideResponse, error)
 	EmergencyStop(context.Context, *EmergencyStopRequest) (*EmergencyStopResponse, error)
 	StreamCarrierStatus(*StreamCarrierStatusRequest, grpc.ServerStreamingServer[CarrierStatusUpdate]) error
 	mustEmbedUnimplementedGarageServiceServer()
@@ -131,6 +157,12 @@ func (UnimplementedGarageServiceServer) GetCarrierStatus(context.Context, *GetCa
 }
 func (UnimplementedGarageServiceServer) GetWeightStatus(context.Context, *GetWeightStatusRequest) (*GetWeightStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWeightStatus not implemented")
+}
+func (UnimplementedGarageServiceServer) ReadGroundScale(context.Context, *ReadGroundScaleRequest) (*ReadGroundScaleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReadGroundScale not implemented")
+}
+func (UnimplementedGarageServiceServer) SetGroundScaleOverride(context.Context, *SetGroundScaleOverrideRequest) (*SetGroundScaleOverrideResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetGroundScaleOverride not implemented")
 }
 func (UnimplementedGarageServiceServer) EmergencyStop(context.Context, *EmergencyStopRequest) (*EmergencyStopResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EmergencyStop not implemented")
@@ -213,6 +245,42 @@ func _GarageService_GetWeightStatus_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GarageService_ReadGroundScale_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadGroundScaleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GarageServiceServer).ReadGroundScale(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GarageService_ReadGroundScale_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GarageServiceServer).ReadGroundScale(ctx, req.(*ReadGroundScaleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GarageService_SetGroundScaleOverride_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetGroundScaleOverrideRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GarageServiceServer).SetGroundScaleOverride(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GarageService_SetGroundScaleOverride_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GarageServiceServer).SetGroundScaleOverride(ctx, req.(*SetGroundScaleOverrideRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GarageService_EmergencyStop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EmergencyStopRequest)
 	if err := dec(in); err != nil {
@@ -260,6 +328,14 @@ var GarageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWeightStatus",
 			Handler:    _GarageService_GetWeightStatus_Handler,
+		},
+		{
+			MethodName: "ReadGroundScale",
+			Handler:    _GarageService_ReadGroundScale_Handler,
+		},
+		{
+			MethodName: "SetGroundScaleOverride",
+			Handler:    _GarageService_SetGroundScaleOverride_Handler,
 		},
 		{
 			MethodName: "EmergencyStop",

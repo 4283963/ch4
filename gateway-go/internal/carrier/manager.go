@@ -13,7 +13,7 @@ const (
 	TotalCarriers     = 8
 	DegreesPerCarrier = 45.0
 	GroundAngle       = 270.0
-	MaxWeightKg       = 2000.0
+	MaxWeightKg       = 2500.0
 	StepsPerSecond    = 0.5
 )
 
@@ -449,6 +449,19 @@ func (m *Manager) FindCarrierByPlate(plate string) int {
 		}
 	}
 	return -1
+}
+
+func (m *Manager) ReadGroundScale() (float64, bool, float64) {
+	weight, err := m.modbusClient.ReadGroundScale()
+	if err != nil {
+		return 0, false, MaxWeightKg
+	}
+	isOverload := weight > MaxWeightKg
+	return weight, isOverload, MaxWeightKg
+}
+
+func (m *Manager) ModbusClient() *modbus.ModbusClient {
+	return m.modbusClient
 }
 
 func (m *Manager) ParkCar(carrierIdx int, plate string, weight float64) error {

@@ -137,6 +137,30 @@ func (m *ModbusClient) ReadWeight(carrierIndex int) (float64, error) {
 	return 0.0, nil
 }
 
+var groundScaleOverride float64 = -1
+
+func (m *ModbusClient) ReadGroundScale() (float64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if !m.connected {
+		return 0, errors.New("modbus client not connected")
+	}
+
+	if groundScaleOverride >= 0 {
+		v := groundScaleOverride
+		return v, nil
+	}
+
+	return 1250.0, nil
+}
+
+func (m *ModbusClient) SetGroundScaleOverride(weightKg float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	groundScaleOverride = weightKg
+}
+
 func (m *ModbusClient) ReadObstructionSensor() (bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

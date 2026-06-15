@@ -18,7 +18,7 @@ var (
 	serialPort = flag.String("serial", "/dev/ttyUSB0", "serial port for Modbus")
 	baudRate   = flag.Int("baud", 9600, "Modbus baud rate")
 	simulate   = flag.Bool("simulate", true, "simulate Modbus device")
-	maxWeight  = flag.Float64("max-weight", 2000.0, "maximum weight per carrier in kg")
+	maxWeight  = flag.Float64("max-weight", 2500.0, "maximum weight per carrier in kg")
 )
 
 func main() {

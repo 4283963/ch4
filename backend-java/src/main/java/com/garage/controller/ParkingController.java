@@ -1,6 +1,7 @@
 package com.garage.controller;
 
 import com.garage.model.*;
+import com.garage.service.GarageGatewayService;
 import com.garage.service.ParkingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,9 @@ public class ParkingController {
 
     @Autowired
     private ParkingService parkingService;
+
+    @Autowired
+    private GarageGatewayService garageGatewayService;
 
     @PostMapping("/park")
     public ApiResponse<ParkingSpot> parkCar(@RequestBody ParkRequest request) {
@@ -59,5 +63,16 @@ public class ParkingController {
     @PostMapping("/force-release-lock")
     public ApiResponse<String> forceReleaseLock() {
         return parkingService.forceReleaseLock();
+    }
+
+    @GetMapping("/ground-scale")
+    public ApiResponse<GroundScaleResponse> getGroundScale() {
+        return ApiResponse.success(garageGatewayService.readGroundScale());
+    }
+
+    @PostMapping("/ground-scale/override")
+    public ApiResponse<String> setGroundScaleOverride(@RequestBody GroundScaleOverrideRequest request) {
+        garageGatewayService.setGroundScaleOverride(request.getWeightKg());
+        return ApiResponse.success("地磅重量已模拟设置为 " + request.getWeightKg() + " kg");
     }
 }

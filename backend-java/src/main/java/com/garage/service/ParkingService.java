@@ -50,6 +50,26 @@ public class ParkingService {
         }
 
         try {
+            GroundScaleResponse scale = garageGatewayService.readGroundScale();
+            log.info("Parking weight check: plate={}, groundScale=%.2fkg, max=%.2fkg, overload=%s".formatted(
+                    scale.getWeightKg(), scale.getMaxWeightKg(), scale.isOverload()));
+
+            if (scale.isOverload()) {
+                log.warn("Vehicle OVERLOAD, blocking park: plate={}, weight=%.2fkg > %.2fkg".formatted(
+                        scale.getWeightKg(), scale.getMaxWeightKg()));
+                ApiResponse<ParkingSpot> resp = ApiResponse.error(413,
+                        "车辆超重，请驶离！当前重量%.0fkg，最大限重%.0fkg".formatted(scale.getWeightKg(), scale.getMaxWeightKg()));
+                resp.setOverloadInfo(scale.getWeightKg(), scale.getMaxWeightKg());
+                return resp;
+            }
+
+            if (request.getCarWeightKg() != null && request.getCarWeightKg() > 2500.0) {
+                ApiResponse<ParkingSpot> resp = ApiResponse.error(413,
+                        "车辆超重，请驶离！当前重量%.0fkg，最大限重2500kg".formatted(request.getCarWeightKg()));
+                resp.setOverloadInfo(request.getCarWeightKg(), 2500.0);
+                return resp;
+            }
+
             Optional<ParkingSpot> existingSpot = parkingSpotRepository.findByLicensePlateAndIsOccupiedTrue(request.getLicensePlate());
             if (existingSpot.isPresent()) {
                 return ApiResponse.error(400, "该车牌号已存在停车记录");
@@ -62,14 +82,13 @@ public class ParkingService {
 
             ParkingSpot spot = emptySpots.get(0);
 
-            if (request.getCarWeightKg() != null && request.getCarWeightKg() > 2000.0) {
-                return ApiResponse.error(400, "车辆超重，最大限重2000kg");
-            }
+            double finalWeight = scale.getWeightKg() > 0 ? scale.getWeightKg() :
+                    (request.getCarWeightKg() != null ? request.getCarWeightKg() : 1000.0);
 
             spot.setLicensePlate(request.getLicensePlate());
             spot.setIsOccupied(true);
             spot.setParkTime(LocalDateTime.now());
-            spot.setCarWeightKg(request.getCarWeightKg() != null ? request.getCarWeightKg() : 1000.0);
+            spot.setCarWeightKg(finalWeight);
             spot.setCarModel(request.getCarModel());
             spot.setOwnerName(request.getOwnerName());
             spot.setOwnerPhone(request.getOwnerPhone());
@@ -81,10 +100,10 @@ public class ParkingService {
             record.setCarrierIndex(spot.getCarrierIndex());
             record.setEntryTime(LocalDateTime.now());
             record.setStatus("PARKED");
-            record.setCarWeightKg(spot.getCarWeightKg());
+            record.setCarWeightKg(finalWeight);
             parkingRecordRepository.save(record);
 
-            log.info("Car parked at carrier index: {}", spot.getCarrierIndex());
+            log.info("Car parked at carrier index: {}, weight=%.2fkg".formatted(finalWeight), spot.getCarrierIndex());
 
             return ApiResponse.success(spot);
         } finally {

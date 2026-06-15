@@ -11,6 +11,8 @@ service GarageService {
   rpc RotateCarrier(RotateRequest) returns (RotateResponse);
   rpc GetCarrierStatus(GetCarrierStatusRequest) returns (GetCarrierStatusResponse);
   rpc GetWeightStatus(GetWeightStatusRequest) returns (GetWeightStatusResponse);
+  rpc ReadGroundScale(ReadGroundScaleRequest) returns (ReadGroundScaleResponse);
+  rpc SetGroundScaleOverride(SetGroundScaleOverrideRequest) returns (SetGroundScaleOverrideResponse);
   rpc EmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
   rpc StreamCarrierStatus(StreamCarrierStatusRequest) returns (stream CarrierStatusUpdate);
 }
@@ -61,6 +63,24 @@ message GetWeightStatusResponse {
   float weight_kg = 1;
   bool is_overload = 2;
   float max_weight_kg = 3;
+}
+
+message ReadGroundScaleRequest {
+}
+
+message ReadGroundScaleResponse {
+  float weight_kg = 1;
+  bool is_overload = 2;
+  float max_weight_kg = 3;
+}
+
+message SetGroundScaleOverrideRequest {
+  float weight_kg = 1;
+}
+
+message SetGroundScaleOverrideResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message EmergencyStopRequest {

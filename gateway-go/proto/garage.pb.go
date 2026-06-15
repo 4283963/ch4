@@ -474,6 +474,198 @@ func (x *GetWeightStatusResponse) GetMaxWeightKg() float32 {
 	return 0
 }
 
+type ReadGroundScaleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadGroundScaleRequest) Reset() {
+	*x = ReadGroundScaleRequest{}
+	mi := &file_garage_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadGroundScaleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadGroundScaleRequest) ProtoMessage() {}
+
+func (x *ReadGroundScaleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_garage_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadGroundScaleRequest.ProtoReflect.Descriptor instead.
+func (*ReadGroundScaleRequest) Descriptor() ([]byte, []int) {
+	return file_garage_proto_rawDescGZIP(), []int{6}
+}
+
+type ReadGroundScaleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WeightKg      float32                `protobuf:"fixed32,1,opt,name=weight_kg,json=weightKg,proto3" json:"weight_kg,omitempty"`
+	IsOverload    bool                   `protobuf:"varint,2,opt,name=is_overload,json=isOverload,proto3" json:"is_overload,omitempty"`
+	MaxWeightKg   float32                `protobuf:"fixed32,3,opt,name=max_weight_kg,json=maxWeightKg,proto3" json:"max_weight_kg,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadGroundScaleResponse) Reset() {
+	*x = ReadGroundScaleResponse{}
+	mi := &file_garage_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadGroundScaleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadGroundScaleResponse) ProtoMessage() {}
+
+func (x *ReadGroundScaleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_garage_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadGroundScaleResponse.ProtoReflect.Descriptor instead.
+func (*ReadGroundScaleResponse) Descriptor() ([]byte, []int) {
+	return file_garage_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ReadGroundScaleResponse) GetWeightKg() float32 {
+	if x != nil {
+		return x.WeightKg
+	}
+	return 0
+}
+
+func (x *ReadGroundScaleResponse) GetIsOverload() bool {
+	if x != nil {
+		return x.IsOverload
+	}
+	return false
+}
+
+func (x *ReadGroundScaleResponse) GetMaxWeightKg() float32 {
+	if x != nil {
+		return x.MaxWeightKg
+	}
+	return 0
+}
+
+type SetGroundScaleOverrideRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WeightKg      float32                `protobuf:"fixed32,1,opt,name=weight_kg,json=weightKg,proto3" json:"weight_kg,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetGroundScaleOverrideRequest) Reset() {
+	*x = SetGroundScaleOverrideRequest{}
+	mi := &file_garage_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetGroundScaleOverrideRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetGroundScaleOverrideRequest) ProtoMessage() {}
+
+func (x *SetGroundScaleOverrideRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_garage_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetGroundScaleOverrideRequest.ProtoReflect.Descriptor instead.
+func (*SetGroundScaleOverrideRequest) Descriptor() ([]byte, []int) {
+	return file_garage_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SetGroundScaleOverrideRequest) GetWeightKg() float32 {
+	if x != nil {
+		return x.WeightKg
+	}
+	return 0
+}
+
+type SetGroundScaleOverrideResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetGroundScaleOverrideResponse) Reset() {
+	*x = SetGroundScaleOverrideResponse{}
+	mi := &file_garage_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetGroundScaleOverrideResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetGroundScaleOverrideResponse) ProtoMessage() {}
+
+func (x *SetGroundScaleOverrideResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_garage_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetGroundScaleOverrideResponse.ProtoReflect.Descriptor instead.
+func (*SetGroundScaleOverrideResponse) Descriptor() ([]byte, []int) {
+	return file_garage_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SetGroundScaleOverrideResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *SetGroundScaleOverrideResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 type EmergencyStopRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
@@ -483,7 +675,7 @@ type EmergencyStopRequest struct {
 
 func (x *EmergencyStopRequest) Reset() {
 	*x = EmergencyStopRequest{}
-	mi := &file_garage_proto_msgTypes[6]
+	mi := &file_garage_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -495,7 +687,7 @@ func (x *EmergencyStopRequest) String() string {
 func (*EmergencyStopRequest) ProtoMessage() {}
 
 func (x *EmergencyStopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_garage_proto_msgTypes[6]
+	mi := &file_garage_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -508,7 +700,7 @@ func (x *EmergencyStopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmergencyStopRequest.ProtoReflect.Descriptor instead.
 func (*EmergencyStopRequest) Descriptor() ([]byte, []int) {
-	return file_garage_proto_rawDescGZIP(), []int{6}
+	return file_garage_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EmergencyStopRequest) GetReason() string {
@@ -528,7 +720,7 @@ type EmergencyStopResponse struct {
 
 func (x *EmergencyStopResponse) Reset() {
 	*x = EmergencyStopResponse{}
-	mi := &file_garage_proto_msgTypes[7]
+	mi := &file_garage_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +732,7 @@ func (x *EmergencyStopResponse) String() string {
 func (*EmergencyStopResponse) ProtoMessage() {}
 
 func (x *EmergencyStopResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_garage_proto_msgTypes[7]
+	mi := &file_garage_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +745,7 @@ func (x *EmergencyStopResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmergencyStopResponse.ProtoReflect.Descriptor instead.
 func (*EmergencyStopResponse) Descriptor() ([]byte, []int) {
-	return file_garage_proto_rawDescGZIP(), []int{7}
+	return file_garage_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *EmergencyStopResponse) GetSuccess() bool {
@@ -579,7 +771,7 @@ type StreamCarrierStatusRequest struct {
 
 func (x *StreamCarrierStatusRequest) Reset() {
 	*x = StreamCarrierStatusRequest{}
-	mi := &file_garage_proto_msgTypes[8]
+	mi := &file_garage_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +783,7 @@ func (x *StreamCarrierStatusRequest) String() string {
 func (*StreamCarrierStatusRequest) ProtoMessage() {}
 
 func (x *StreamCarrierStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_garage_proto_msgTypes[8]
+	mi := &file_garage_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +796,7 @@ func (x *StreamCarrierStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamCarrierStatusRequest.ProtoReflect.Descriptor instead.
 func (*StreamCarrierStatusRequest) Descriptor() ([]byte, []int) {
-	return file_garage_proto_rawDescGZIP(), []int{8}
+	return file_garage_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *StreamCarrierStatusRequest) GetCarrierId() int32 {
@@ -628,7 +820,7 @@ type CarrierStatusUpdate struct {
 
 func (x *CarrierStatusUpdate) Reset() {
 	*x = CarrierStatusUpdate{}
-	mi := &file_garage_proto_msgTypes[9]
+	mi := &file_garage_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -640,7 +832,7 @@ func (x *CarrierStatusUpdate) String() string {
 func (*CarrierStatusUpdate) ProtoMessage() {}
 
 func (x *CarrierStatusUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_garage_proto_msgTypes[9]
+	mi := &file_garage_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -653,7 +845,7 @@ func (x *CarrierStatusUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CarrierStatusUpdate.ProtoReflect.Descriptor instead.
 func (*CarrierStatusUpdate) Descriptor() ([]byte, []int) {
-	return file_garage_proto_rawDescGZIP(), []int{9}
+	return file_garage_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CarrierStatusUpdate) GetStatus() CarrierStatus {
@@ -728,7 +920,18 @@ const file_garage_proto_rawDesc = "" +
 	"\tweight_kg\x18\x01 \x01(\x02R\bweightKg\x12\x1f\n" +
 	"\vis_overload\x18\x02 \x01(\bR\n" +
 	"isOverload\x12\"\n" +
-	"\rmax_weight_kg\x18\x03 \x01(\x02R\vmaxWeightKg\".\n" +
+	"\rmax_weight_kg\x18\x03 \x01(\x02R\vmaxWeightKg\"\x18\n" +
+	"\x16ReadGroundScaleRequest\"{\n" +
+	"\x17ReadGroundScaleResponse\x12\x1b\n" +
+	"\tweight_kg\x18\x01 \x01(\x02R\bweightKg\x12\x1f\n" +
+	"\vis_overload\x18\x02 \x01(\bR\n" +
+	"isOverload\x12\"\n" +
+	"\rmax_weight_kg\x18\x03 \x01(\x02R\vmaxWeightKg\"<\n" +
+	"\x1dSetGroundScaleOverrideRequest\x12\x1b\n" +
+	"\tweight_kg\x18\x01 \x01(\x02R\bweightKg\"T\n" +
+	"\x1eSetGroundScaleOverrideResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\".\n" +
 	"\x14EmergencyStopRequest\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\"K\n" +
 	"\x15EmergencyStopResponse\x12\x18\n" +
@@ -755,11 +958,13 @@ const file_garage_proto_rawDesc = "" +
 	"\x11EMERGENCY_STOPPED\x10\x02\x12\x13\n" +
 	"\x0fWEIGHT_OVERLOAD\x10\x03\x12\x0e\n" +
 	"\n" +
-	"OBSTRUCTED\x10\x042\xa2\x03\n" +
+	"OBSTRUCTED\x10\x042\xdf\x04\n" +
 	"\rGarageService\x12>\n" +
 	"\rRotateCarrier\x12\x15.garage.RotateRequest\x1a\x16.garage.RotateResponse\x12U\n" +
 	"\x10GetCarrierStatus\x12\x1f.garage.GetCarrierStatusRequest\x1a .garage.GetCarrierStatusResponse\x12R\n" +
-	"\x0fGetWeightStatus\x12\x1e.garage.GetWeightStatusRequest\x1a\x1f.garage.GetWeightStatusResponse\x12L\n" +
+	"\x0fGetWeightStatus\x12\x1e.garage.GetWeightStatusRequest\x1a\x1f.garage.GetWeightStatusResponse\x12R\n" +
+	"\x0fReadGroundScale\x12\x1e.garage.ReadGroundScaleRequest\x1a\x1f.garage.ReadGroundScaleResponse\x12g\n" +
+	"\x16SetGroundScaleOverride\x12%.garage.SetGroundScaleOverrideRequest\x1a&.garage.SetGroundScaleOverrideResponse\x12L\n" +
 	"\rEmergencyStop\x12\x1c.garage.EmergencyStopRequest\x1a\x1d.garage.EmergencyStopResponse\x12X\n" +
 	"\x13StreamCarrierStatus\x12\".garage.StreamCarrierStatusRequest\x1a\x1b.garage.CarrierStatusUpdate0\x01B3\n" +
 	"\x10com.garage.protoB\vGarageProtoP\x01Z\x10gateway-go/protob\x06proto3"
@@ -777,20 +982,24 @@ func file_garage_proto_rawDescGZIP() []byte {
 }
 
 var file_garage_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_garage_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_garage_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_garage_proto_goTypes = []any{
-	(RotateDirection)(0),               // 0: garage.RotateDirection
-	(CarrierStatus)(0),                 // 1: garage.CarrierStatus
-	(*RotateRequest)(nil),              // 2: garage.RotateRequest
-	(*RotateResponse)(nil),             // 3: garage.RotateResponse
-	(*GetCarrierStatusRequest)(nil),    // 4: garage.GetCarrierStatusRequest
-	(*GetCarrierStatusResponse)(nil),   // 5: garage.GetCarrierStatusResponse
-	(*GetWeightStatusRequest)(nil),     // 6: garage.GetWeightStatusRequest
-	(*GetWeightStatusResponse)(nil),    // 7: garage.GetWeightStatusResponse
-	(*EmergencyStopRequest)(nil),       // 8: garage.EmergencyStopRequest
-	(*EmergencyStopResponse)(nil),      // 9: garage.EmergencyStopResponse
-	(*StreamCarrierStatusRequest)(nil), // 10: garage.StreamCarrierStatusRequest
-	(*CarrierStatusUpdate)(nil),        // 11: garage.CarrierStatusUpdate
+	(RotateDirection)(0),                   // 0: garage.RotateDirection
+	(CarrierStatus)(0),                     // 1: garage.CarrierStatus
+	(*RotateRequest)(nil),                  // 2: garage.RotateRequest
+	(*RotateResponse)(nil),                 // 3: garage.RotateResponse
+	(*GetCarrierStatusRequest)(nil),        // 4: garage.GetCarrierStatusRequest
+	(*GetCarrierStatusResponse)(nil),       // 5: garage.GetCarrierStatusResponse
+	(*GetWeightStatusRequest)(nil),         // 6: garage.GetWeightStatusRequest
+	(*GetWeightStatusResponse)(nil),        // 7: garage.GetWeightStatusResponse
+	(*ReadGroundScaleRequest)(nil),         // 8: garage.ReadGroundScaleRequest
+	(*ReadGroundScaleResponse)(nil),        // 9: garage.ReadGroundScaleResponse
+	(*SetGroundScaleOverrideRequest)(nil),  // 10: garage.SetGroundScaleOverrideRequest
+	(*SetGroundScaleOverrideResponse)(nil), // 11: garage.SetGroundScaleOverrideResponse
+	(*EmergencyStopRequest)(nil),           // 12: garage.EmergencyStopRequest
+	(*EmergencyStopResponse)(nil),          // 13: garage.EmergencyStopResponse
+	(*StreamCarrierStatusRequest)(nil),     // 14: garage.StreamCarrierStatusRequest
+	(*CarrierStatusUpdate)(nil),            // 15: garage.CarrierStatusUpdate
 }
 var file_garage_proto_depIdxs = []int32{
 	0,  // 0: garage.RotateRequest.direction:type_name -> garage.RotateDirection
@@ -799,15 +1008,19 @@ var file_garage_proto_depIdxs = []int32{
 	2,  // 3: garage.GarageService.RotateCarrier:input_type -> garage.RotateRequest
 	4,  // 4: garage.GarageService.GetCarrierStatus:input_type -> garage.GetCarrierStatusRequest
 	6,  // 5: garage.GarageService.GetWeightStatus:input_type -> garage.GetWeightStatusRequest
-	8,  // 6: garage.GarageService.EmergencyStop:input_type -> garage.EmergencyStopRequest
-	10, // 7: garage.GarageService.StreamCarrierStatus:input_type -> garage.StreamCarrierStatusRequest
-	3,  // 8: garage.GarageService.RotateCarrier:output_type -> garage.RotateResponse
-	5,  // 9: garage.GarageService.GetCarrierStatus:output_type -> garage.GetCarrierStatusResponse
-	7,  // 10: garage.GarageService.GetWeightStatus:output_type -> garage.GetWeightStatusResponse
-	9,  // 11: garage.GarageService.EmergencyStop:output_type -> garage.EmergencyStopResponse
-	11, // 12: garage.GarageService.StreamCarrierStatus:output_type -> garage.CarrierStatusUpdate
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
+	8,  // 6: garage.GarageService.ReadGroundScale:input_type -> garage.ReadGroundScaleRequest
+	10, // 7: garage.GarageService.SetGroundScaleOverride:input_type -> garage.SetGroundScaleOverrideRequest
+	12, // 8: garage.GarageService.EmergencyStop:input_type -> garage.EmergencyStopRequest
+	14, // 9: garage.GarageService.StreamCarrierStatus:input_type -> garage.StreamCarrierStatusRequest
+	3,  // 10: garage.GarageService.RotateCarrier:output_type -> garage.RotateResponse
+	5,  // 11: garage.GarageService.GetCarrierStatus:output_type -> garage.GetCarrierStatusResponse
+	7,  // 12: garage.GarageService.GetWeightStatus:output_type -> garage.GetWeightStatusResponse
+	9,  // 13: garage.GarageService.ReadGroundScale:output_type -> garage.ReadGroundScaleResponse
+	11, // 14: garage.GarageService.SetGroundScaleOverride:output_type -> garage.SetGroundScaleOverrideResponse
+	13, // 15: garage.GarageService.EmergencyStop:output_type -> garage.EmergencyStopResponse
+	15, // 16: garage.GarageService.StreamCarrierStatus:output_type -> garage.CarrierStatusUpdate
+	10, // [10:17] is the sub-list for method output_type
+	3,  // [3:10] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -818,14 +1031,14 @@ func file_garage_proto_init() {
 	if File_garage_proto != nil {
 		return
 	}
-	file_garage_proto_msgTypes[9].OneofWrappers = []any{}
+	file_garage_proto_msgTypes[13].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_garage_proto_rawDesc), len(file_garage_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   10,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -18,6 +18,10 @@ export const parkingApi = {
     return api.post('/parking/pickup', { licensePlate, paymentMethod: 'ONLINE' })
   },
 
+  park(parkData) {
+    return api.post('/parking/park', parkData)
+  },
+
   completePickup(licensePlate) {
     return api.post(`/parking/complete/${licensePlate}`)
   },
@@ -44,6 +48,14 @@ export const parkingApi = {
 
   forceReleaseLock() {
     return api.post('/parking/force-release-lock')
+  },
+
+  getGroundScale() {
+    return api.get('/parking/ground-scale')
+  },
+
+  setGroundScaleOverride(weightKg) {
+    return api.post('/parking/ground-scale/override', { weightKg })
   }
 }
 
