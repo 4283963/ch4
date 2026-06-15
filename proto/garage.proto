@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package garage;
+
+option go_package = "gateway-go/proto";
+option java_multiple_files = true;
+option java_package = "com.garage.proto";
+option java_outer_classname = "GarageProto";
+
+service GarageService {
+  rpc RotateCarrier(RotateRequest) returns (RotateResponse);
+  rpc GetCarrierStatus(GetCarrierStatusRequest) returns (GetCarrierStatusResponse);
+  rpc GetWeightStatus(GetWeightStatusRequest) returns (GetWeightStatusResponse);
+  rpc EmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
+  rpc StreamCarrierStatus(StreamCarrierStatusRequest) returns (stream CarrierStatusUpdate);
+}
+
+enum RotateDirection {
+  CLOCKWISE = 0;
+  COUNTER_CLOCKWISE = 1;
+}
+
+enum CarrierStatus {
+  IDLE = 0;
+  ROTATING = 1;
+  EMERGENCY_STOPPED = 2;
+  WEIGHT_OVERLOAD = 3;
+  OBSTRUCTED = 4;
+}
+
+message RotateRequest {
+  int32 carrier_id = 1;
+  RotateDirection direction = 2;
+  int32 steps = 3;
+}
+
+message RotateResponse {
+  bool success = 1;
+  string message = 2;
+  int32 estimated_time_ms = 3;
+}
+
+message GetCarrierStatusRequest {
+  int32 carrier_id = 1;
+}
+
+message GetCarrierStatusResponse {
+  CarrierStatus status = 1;
+  int32 current_floor = 2;
+  int32 ground_carrier_index = 3;
+  float current_angle = 4;
+  repeated float carrier_angles = 5;
+  repeated string license_plates = 6;
+}
+
+message GetWeightStatusRequest {
+  int32 carrier_index = 1;
+}
+
+message GetWeightStatusResponse {
+  float weight_kg = 1;
+  bool is_overload = 2;
+  float max_weight_kg = 3;
+}
+
+message EmergencyStopRequest {
+  string reason = 1;
+}
+
+message EmergencyStopResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message StreamCarrierStatusRequest {
+  int32 carrier_id = 1;
+}
+
+message CarrierStatusUpdate {
+  CarrierStatus status = 1;
+  int32 ground_carrier_index = 2;
+  float current_angle = 3;
+  int64 timestamp = 4;
+  optional int32 target_carrier_index = 5;
+  optional float progress = 6;
+}
