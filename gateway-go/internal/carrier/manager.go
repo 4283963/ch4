@@ -17,6 +17,18 @@ const (
 	StepsPerSecond    = 0.5
 )
 
+type RotationCommand struct {
+	TargetIdx int
+	Direction pb.RotateDirection
+	Steps     int
+	ResultCh  chan *RotationResult
+}
+
+type RotationResult struct {
+	Success bool
+	Message string
+}
+
 type Manager struct {
 	mu                sync.RWMutex
 	modbusClient      *modbus.ModbusClient
@@ -32,6 +44,9 @@ type Manager struct {
 	rotateSpeed       float64
 	statusSubscribers []chan pb.CarrierStatusUpdate
 	obstruction       bool
+
+	commandQueue chan RotationCommand
+	queueRunning bool
 }
 
 type Carrier struct {
@@ -72,11 +87,88 @@ func NewManager(modbusClient *modbus.ModbusClient) *Manager {
 		groundCarrierIdx: 0,
 		status:           pb.CarrierStatus_IDLE,
 		rotateSpeed:      2.0,
+		commandQueue:     make(chan RotationCommand, 64),
+		queueRunning:     false,
 	}
 
 	go m.angleUpdateLoop()
+	go m.commandProcessor()
 
 	return m
+}
+
+func (m *Manager) commandProcessor() {
+	for cmd := range m.commandQueue {
+		m.mu.Lock()
+		for m.rotating {
+			m.mu.Unlock()
+			time.Sleep(50 * time.Millisecond)
+			m.mu.Lock()
+		}
+		m.mu.Unlock()
+
+		result := m.executeRotation(cmd.TargetIdx, cmd.Direction, cmd.Steps)
+		cmd.ResultCh <- result
+	}
+}
+
+func (m *Manager) executeRotation(targetIdx int, direction pb.RotateDirection, steps int) *RotationResult {
+	m.mu.Lock()
+
+	if targetIdx < 0 || targetIdx >= TotalCarriers {
+		m.mu.Unlock()
+		return &RotationResult{Success: false, Message: "invalid carrier index"}
+	}
+
+	weight := m.carriers[targetIdx].WeightKg
+	if weight > MaxWeightKg {
+		m.status = pb.CarrierStatus_WEIGHT_OVERLOAD
+		m.mu.Unlock()
+		return &RotationResult{Success: false, Message: "weight overload detected"}
+	}
+
+	m.rotating = true
+	m.status = pb.CarrierStatus_ROTATING
+	m.targetIdx = targetIdx
+	m.startIdx = m.groundCarrierIdx
+	m.startTime = time.Now()
+	m.totalSteps = steps
+	m.direction = direction
+	m.mu.Unlock()
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		m.mu.Lock()
+		clockwise := direction == pb.RotateDirection_CLOCKWISE
+		stepDegrees := m.rotateSpeed
+		m.mu.Unlock()
+
+		m.modbusClient.StartMotor(clockwise, int(stepDegrees*10))
+
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			m.mu.RLock()
+			if !m.rotating {
+				m.mu.RUnlock()
+				break
+			}
+			currentIdx := m.groundCarrierIdx
+			m.mu.RUnlock()
+
+			if currentIdx == targetIdx {
+				m.stopRotation(false)
+				break
+			}
+		}
+	}()
+
+	<-done
+
+	return &RotationResult{Success: true, Message: "rotation completed"}
 }
 
 func (m *Manager) angleUpdateLoop() {
@@ -85,7 +177,6 @@ func (m *Manager) angleUpdateLoop() {
 
 	for range ticker.C {
 		m.updateCarrierAngles()
-		m.checkRotationProgress()
 		m.broadcastStatus()
 	}
 }
@@ -171,79 +262,59 @@ func (m *Manager) getFloorForCarrier(carrierIdx int) int {
 }
 
 func (m *Manager) RotateToCarrier(targetIdx int, direction pb.RotateDirection, steps int) (*pb.RotateResponse, error) {
-	m.mu.Lock()
+	m.mu.RLock()
+	queueLen := len(m.commandQueue)
+	m.mu.RUnlock()
 
-	if m.rotating {
-		m.mu.Unlock()
+	if queueLen >= 60 {
 		return &pb.RotateResponse{
 			Success: false,
-			Message: "carrier is already rotating",
-		}, errors.New("already rotating")
+			Message: "command queue full",
+		}, errors.New("queue full")
 	}
 
-	if targetIdx < 0 || targetIdx >= TotalCarriers {
-		m.mu.Unlock()
+	resultCh := make(chan *RotationResult, 1)
+	cmd := RotationCommand{
+		TargetIdx: targetIdx,
+		Direction: direction,
+		Steps:     steps,
+		ResultCh:  resultCh,
+	}
+
+	select {
+	case m.commandQueue <- cmd:
+		logf("Rotation command queued: target=%d, direction=%v, steps=%d, queueLen=%d",
+			targetIdx, direction, steps, len(m.commandQueue))
+	default:
 		return &pb.RotateResponse{
 			Success: false,
-			Message: "invalid carrier index",
-		}, errors.New("invalid index")
+			Message: "command queue full, try again later",
+		}, errors.New("queue full")
 	}
 
-	weight := m.carriers[targetIdx].WeightKg
-	if weight > MaxWeightKg {
-		m.status = pb.CarrierStatus_WEIGHT_OVERLOAD
-		m.mu.Unlock()
+	select {
+	case result := <-resultCh:
+		if result.Success {
+			estimatedTime := int32(float64(steps) * 1000.0 / StepsPerSecond)
+			return &pb.RotateResponse{
+				Success:         true,
+				Message:         result.Message,
+				EstimatedTimeMs: estimatedTime,
+			}, nil
+		}
 		return &pb.RotateResponse{
 			Success: false,
-			Message: "weight overload detected",
-		}, errors.New("weight overload")
+			Message: result.Message,
+		}, errors.New(result.Message)
+	case <-time.After(120 * time.Second):
+		return &pb.RotateResponse{
+			Success: false,
+			Message: "rotation timeout",
+		}, errors.New("timeout")
 	}
-
-	m.rotating = true
-	m.status = pb.CarrierStatus_ROTATING
-	m.targetIdx = targetIdx
-	m.startIdx = m.groundCarrierIdx
-	m.startTime = time.Now()
-	m.totalSteps = steps
-	m.direction = direction
-	m.mu.Unlock()
-
-	go m.performRotation(targetIdx, direction, steps)
-
-	estimatedTime := int32(float64(steps) * 1000.0 / StepsPerSecond)
-
-	return &pb.RotateResponse{
-		Success:         true,
-		Message:         "rotation started",
-		EstimatedTimeMs: estimatedTime,
-	}, nil
 }
 
-func (m *Manager) performRotation(targetIdx int, direction pb.RotateDirection, steps int) {
-	m.mu.Lock()
-	clockwise := direction == pb.RotateDirection_CLOCKWISE
-	stepDegrees := m.rotateSpeed
-	m.mu.Unlock()
-
-	m.modbusClient.StartMotor(clockwise, int(stepDegrees*10))
-
-	ticker := time.NewTicker(50 * time.Millisecond)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		m.mu.RLock()
-		if !m.rotating {
-			m.mu.RUnlock()
-			break
-		}
-		currentIdx := m.groundCarrierIdx
-		m.mu.RUnlock()
-
-		if currentIdx == targetIdx {
-			m.stopRotation(false)
-			break
-		}
-	}
+func logf(format string, args ...interface{}) {
 }
 
 func (m *Manager) stopRotation(emergency bool) {
@@ -260,10 +331,6 @@ func (m *Manager) stopRotation(emergency bool) {
 	}
 }
 
-func (m *Manager) checkRotationProgress() {
-	// Progress is tracked via angle updates
-}
-
 func (m *Manager) EmergencyStop(reason string) (*pb.EmergencyStopResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -271,6 +338,15 @@ func (m *Manager) EmergencyStop(reason string) (*pb.EmergencyStopResponse, error
 	m.modbusClient.StopMotor()
 	m.rotating = false
 	m.status = pb.CarrierStatus_EMERGENCY_STOPPED
+
+	queueLen := len(m.commandQueue)
+	for i := 0; i < queueLen; i++ {
+		select {
+		case cmd := <-m.commandQueue:
+			cmd.ResultCh <- &RotationResult{Success: false, Message: "emergency stop"}
+		default:
+		}
+	}
 
 	return &pb.EmergencyStopResponse{
 		Success: true,
@@ -329,7 +405,7 @@ func (m *Manager) broadcastStatus() {
 	targetIdx := int32(0)
 
 	if m.rotating && m.totalSteps > 0 {
-		stepsDone := abs(m.groundCarrierIdx - m.startIdx)
+		stepsDone := abs(m.groundCarrierIdx-m.startIdx) % TotalCarriers
 		if stepsDone != 0 {
 			progress = float32(stepsDone) / float32(m.totalSteps)
 		}

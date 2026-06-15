@@ -2,9 +2,9 @@ package com.garage.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -12,43 +12,34 @@ public class GarageGatewayService {
 
     private static final Logger log = LoggerFactory.getLogger(GarageGatewayService.class);
 
-    private final AtomicBoolean isRotating = new AtomicBoolean(false);
     private final AtomicInteger currentGroundIndex = new AtomicInteger(0);
     private final AtomicInteger targetIndex = new AtomicInteger(0);
 
-    public boolean rotateToCarrier(int carrierIndex, ParkingService.RotateDirection direction, int steps) {
-        log.info("Sending rotate command to gateway: carrierIndex={}, direction={}, steps={}",
-                carrierIndex, direction, steps);
+    @Autowired
+    private GarageRotationLockService lockService;
 
-        if (isRotating.get()) {
-            log.warn("Garage is already rotating");
-            return false;
-        }
+    @Autowired
+    private RotationExecutionService rotationExecutionService;
 
-        isRotating.set(true);
+    public boolean rotateToCarrier(String requestId, int carrierIndex, ParkingService.RotateDirection direction, int steps) {
+        log.info("Executing rotation for request={}, carrierIndex={}, direction={}, steps={}",
+                requestId, carrierIndex, direction, steps);
+
         targetIndex.set(carrierIndex);
 
-        new Thread(() -> {
-            try {
-                int delay = steps * 500;
-                log.info("Rotation started, estimated time: {}ms", delay);
-                Thread.sleep(Math.min(delay, 5000));
+        rotationExecutionService.executeRotation(requestId, carrierIndex, direction, steps, () -> {
+            currentGroundIndex.set(carrierIndex);
+            log.info("Rotation completed for request={}, ground carrier index: {}", requestId, carrierIndex);
 
-                currentGroundIndex.set(carrierIndex);
-                log.info("Rotation completed, ground carrier index: {}", carrierIndex);
-            } catch (InterruptedException e) {
-                log.error("Rotation interrupted", e);
-                Thread.currentThread().interrupt();
-            } finally {
-                isRotating.set(false);
+            lockService.releaseLock(requestId);
+
+            String nextRequestId = lockService.pollQueue();
+            if (nextRequestId != null) {
+                log.info("Dequeued next request={} for execution", nextRequestId);
             }
-        }).start();
+        });
 
         return true;
-    }
-
-    public boolean isRotating() {
-        return isRotating.get();
     }
 
     public int getCurrentGroundIndex() {
@@ -69,7 +60,7 @@ public class GarageGatewayService {
 
     public boolean emergencyStop(String reason) {
         log.warn("Emergency stop activated: {}", reason);
-        isRotating.set(false);
+        lockService.forceReleaseAll();
         return true;
     }
 }

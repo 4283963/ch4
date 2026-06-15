@@ -13,6 +13,9 @@ public class PickupResponse {
     private Long durationMinutes;
     private LocalDateTime parkTime;
     private String status;
+    private String requestId;
+    private Integer queuePosition;
+    private String currentHolder;
 
     public String getLicensePlate() { return licensePlate; }
     public void setLicensePlate(String licensePlate) { this.licensePlate = licensePlate; }
@@ -43,4 +46,13 @@ public class PickupResponse {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getRequestId() { return requestId; }
+    public void setRequestId(String requestId) { this.requestId = requestId; }
+
+    public Integer getQueuePosition() { return queuePosition; }
+    public void setQueuePosition(Integer queuePosition) { this.queuePosition = queuePosition; }
+
+    public String getCurrentHolder() { return currentHolder; }
+    public void setCurrentHolder(String currentHolder) { this.currentHolder = currentHolder; }
 }

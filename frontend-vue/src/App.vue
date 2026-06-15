@@ -47,18 +47,18 @@
 
           <button
             class="btn btn-primary pickup-btn"
-            :disabled="!licensePlate || isRotating"
+            :disabled="!licensePlate || isSubmitting"
             @click="handlePickup"
           >
-            {{ isRotating ? '车辆传送中...' : '立即取车' }}
+            {{ buttonText }}
           </button>
 
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
           </div>
 
-          <div v-if="pickupResult" class="pickup-result card">
-            <h3>取车信息</h3>
+          <div v-if="pickupResult" class="pickup-result card" :class="pickupResult.status.toLowerCase()">
+            <h3>{{ statusTitle }}</h3>
             <div class="result-grid">
               <div class="result-item">
                 <span class="label">车牌号</span>
@@ -85,6 +85,12 @@
                 <span class="value amount">¥{{ pickupResult.amount.toFixed(2) }}</span>
               </div>
             </div>
+
+            <div v-if="pickupResult.status === 'QUEUED'" class="queue-info">
+              <div class="queue-spinner"></div>
+              <p>排队等待中，前方还有 <strong>{{ pickupResult.queuePosition }}</strong> 位</p>
+              <p class="queue-holder">当前正在调车：{{ pickupResult.currentHolder }}</p>
+            </div>
           </div>
         </div>
 
@@ -92,9 +98,9 @@
           <h3>📋 使用说明</h3>
           <ul>
             <li>输入车牌号后点击"立即取车"</li>
-            <li>系统自动将您的车辆传送至地面</li>
-            <li>请在出口处等候，注意安全</li>
-            <li>如需帮助请拨打客服电话</li>
+            <li>如遇其他车主正在调车，系统自动排队</li>
+            <li>排队期间请耐心等待，轮到您时自动执行</li>
+            <li>如遇紧急情况，请联系工作人员</li>
           </ul>
         </div>
       </div>
@@ -148,6 +154,7 @@ import { parkingApi } from './api/parking.js'
 
 const totalCarriers = 8
 const licensePlate = ref('')
+const isSubmitting = ref(false)
 const isRotating = ref(false)
 const groundCarrierIndex = ref(0)
 const targetCarrierIndex = ref(null)
@@ -171,78 +178,137 @@ const carriers = ref([
 ])
 
 let rotationInterval = null
+let queuePollInterval = null
+
+const buttonText = computed(() => {
+  if (isSubmitting) return '请求中...'
+  if (isRotating) return '车辆传送中...'
+  if (pickupResult.value?.status === 'QUEUED') return '排队等待中...'
+  return '立即取车'
+})
+
+const statusTitle = computed(() => {
+  if (!pickupResult.value) return ''
+  const s = pickupResult.value.status
+  if (s === 'QUEUED') return '⏳ 排队等待中'
+  if (s === 'ROTATING') return '🔄 正在调车'
+  return '取车信息'
+})
 
 function formatDuration(minutes) {
   if (!minutes) return '0分钟'
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
-  if (hours > 0) {
-    return `${hours}小时${mins}分钟`
-  }
+  if (hours > 0) return `${hours}小时${mins}分钟`
   return `${mins}分钟`
 }
 
 async function handlePickup() {
-  if (!licensePlate.value.trim()) {
-    errorMessage.value = '请输入车牌号'
-    return
-  }
+  if (!licensePlate.value.trim() || isSubmitting.value) return
 
   errorMessage.value = ''
   pickupResult.value = null
+  isSubmitting.value = true
 
   try {
     const result = await parkingApi.pickup(licensePlate.value.trim())
 
     if (result.code !== 200) {
       errorMessage.value = result.message || '取车失败'
+      isSubmitting.value = false
       return
     }
 
     const data = result.data
     pickupResult.value = data
-    targetCarrierIndex.value = data.carrierIndex
-    isRotating.value = true
-    garageStatus.value = 'ROTATING'
-    rotationProgress.value = 0
 
-    const totalSteps = data.steps
-    const stepTime = (data.estimatedTimeMs || 5000) / totalSteps / 100
-
-    let currentStep = 0
-    const startIdx = groundCarrierIndex.value
-    const direction = data.direction
-
-    if (rotationInterval) {
-      clearInterval(rotationInterval)
+    if (data.status === 'QUEUED') {
+      isSubmitting.value = false
+      garageStatus.value = 'QUEUED'
+      startQueuePolling(data.requestId)
+      return
     }
 
-    rotationInterval = setInterval(() => {
-      currentStep += 0.1
-      rotationProgress.value = Math.min(currentStep / totalSteps, 1)
-
-      const currentCarrierIdx = Math.round(startIdx + (direction === 'CLOCKWISE' ? 1 : -1) * currentStep)
-      const normalizedIdx = ((currentCarrierIdx % totalCarriers) + totalCarriers) % totalCarriers
-      groundCarrierIndex.value = normalizedIdx
-
-      if (currentStep >= totalSteps) {
-        clearInterval(rotationInterval)
-        rotationInterval = null
-        groundCarrierIndex.value = targetCarrierIndex.value
-        rotationProgress.value = 1
-        isRotating.value = false
-        garageStatus.value = 'IDLE'
-
-        completePickup(licensePlate.value.trim())
-      }
-    }, stepTime)
+    startRotationAnimation(data)
 
   } catch (error) {
     console.error('Pickup error:', error)
     errorMessage.value = '取车请求失败，请稍后重试'
-
+    isSubmitting.value = false
     simulatePickup()
   }
+}
+
+function startRotationAnimation(data) {
+  isSubmitting.value = false
+  targetCarrierIndex.value = data.carrierIndex
+  isRotating.value = true
+  garageStatus.value = 'ROTATING'
+  rotationProgress.value = 0
+
+  const totalSteps = data.steps
+  const stepTime = (data.estimatedTimeMs || 5000) / totalSteps / 100
+
+  let currentStep = 0
+  const startIdx = groundCarrierIndex.value
+  const direction = data.direction
+
+  if (rotationInterval) clearInterval(rotationInterval)
+
+  rotationInterval = setInterval(() => {
+    currentStep += 0.1
+    rotationProgress.value = Math.min(currentStep / totalSteps, 1)
+
+    const currentCarrierIdx = Math.round(startIdx + (direction === 'CLOCKWISE' ? 1 : -1) * currentStep)
+    const normalizedIdx = ((currentCarrierIdx % totalCarriers) + totalCarriers) % totalCarriers
+    groundCarrierIndex.value = normalizedIdx
+
+    if (currentStep >= totalSteps) {
+      clearInterval(rotationInterval)
+      rotationInterval = null
+      groundCarrierIndex.value = targetCarrierIndex.value
+      rotationProgress.value = 1
+      isRotating.value = false
+      garageStatus.value = 'IDLE'
+
+      completePickup(licensePlate.value.trim())
+    }
+  }, stepTime)
+}
+
+function startQueuePolling(requestId) {
+  if (queuePollInterval) clearInterval(queuePollInterval)
+
+  queuePollInterval = setInterval(async () => {
+    try {
+      const result = await parkingApi.getQueueStatus(requestId)
+      if (result.code !== 200) return
+
+      const status = result.data
+      if (status.status === 'ROTATING' && pickupResult.value) {
+        pickupResult.value.status = 'ROTATING'
+        pickupResult.value.queuePosition = 0
+
+        const data = pickupResult.value
+        clearInterval(queuePollInterval)
+        queuePollInterval = null
+        startRotationAnimation(data)
+      } else if (status.status === 'QUEUED') {
+        if (pickupResult.value) {
+          pickupResult.value.queuePosition = status.queuePosition
+        }
+      } else if (status.status === 'IDLE') {
+        if (pickupResult.value) {
+          pickupResult.value.status = 'ROTATING'
+          clearInterval(queuePollInterval)
+          queuePollInterval = null
+          startRotationAnimation(pickupResult.value)
+        }
+      }
+    } catch (e) {
+      console.error('Queue poll error:', e)
+    }
+  }, 2000)
 }
 
 function simulatePickup() {
@@ -281,51 +347,18 @@ function simulatePickup() {
     estimatedTimeMs: steps * 1500,
     durationMinutes: 185,
     amount: 25.0,
-    parkTime: new Date(Date.now() - 185 * 60 * 1000)
+    parkTime: new Date(Date.now() - 185 * 60 * 1000),
+    status: 'ROTATING'
   }
 
-  targetCarrierIndex.value = carrierIdx
-  isRotating.value = true
-  garageStatus.value = 'ROTATING'
-  rotationProgress.value = 0
-
-  const totalSteps = steps
-  const stepTime = 300
-
-  if (rotationInterval) {
-    clearInterval(rotationInterval)
-  }
-
-  let currentStep = 0
-  const startIdx = groundCarrierIndex.value
-
-  rotationInterval = setInterval(() => {
-    currentStep += 0.1
-    rotationProgress.value = Math.min(currentStep / totalSteps, 1)
-
-    const currentCarrierIdx = Math.round(startIdx + (direction === 'CLOCKWISE' ? 1 : -1) * currentStep)
-    const normalizedIdx = ((currentCarrierIdx % totalCarriers) + totalCarriers) % totalCarriers
-    groundCarrierIndex.value = normalizedIdx
-
-    if (currentStep >= totalSteps) {
-      clearInterval(rotationInterval)
-      rotationInterval = null
-      groundCarrierIndex.value = carrierIdx
-      rotationProgress.value = 1
-      isRotating.value = false
-      garageStatus.value = 'IDLE'
-
-      carriers.value[carrierIdx] = { hasCar: false, licensePlate: '' }
-      availableSpots.value++
-    }
-  }, stepTime)
+  startRotationAnimation(pickupResult.value)
 }
 
 async function completePickup(plate) {
   try {
     await parkingApi.completePickup(plate)
   } catch (e) {
-    console.log('Complete pickup (simulated)')
+    console.log('Complete pickup error:', e)
   }
 }
 
@@ -361,9 +394,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (rotationInterval) {
-    clearInterval(rotationInterval)
-  }
+  if (rotationInterval) clearInterval(rotationInterval)
+  if (queuePollInterval) clearInterval(queuePollInterval)
 })
 </script>
 
@@ -529,14 +561,29 @@ onUnmounted(() => {
 
 .pickup-result {
   margin-top: 20px;
+}
+
+.pickup-result.queued {
+  background: rgba(255, 152, 0, 0.1);
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+.pickup-result.rotating {
   background: rgba(76, 175, 80, 0.1);
   border-color: rgba(76, 175, 80, 0.3);
 }
 
 .pickup-result h3 {
   margin-bottom: 16px;
-  color: #4CAF50;
   font-size: 16px;
+}
+
+.pickup-result.rotating h3 {
+  color: #4CAF50;
+}
+
+.pickup-result.queued h3 {
+  color: #FF9800;
 }
 
 .result-grid {
@@ -564,6 +611,39 @@ onUnmounted(() => {
 .result-item .value.amount {
   color: #FF9800;
   font-size: 20px;
+}
+
+.queue-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.queue-info p {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+.queue-info .queue-holder {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.queue-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 152, 0, 0.3);
+  border-top-color: #FF9800;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .info-card h3 {

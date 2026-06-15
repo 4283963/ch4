@@ -36,6 +36,14 @@ export const parkingApi = {
 
   getRecords(licensePlate) {
     return api.get('/parking/records', { params: { licensePlate } })
+  },
+
+  getQueueStatus(requestId) {
+    return api.get('/parking/queue-status', { params: { requestId } })
+  },
+
+  forceReleaseLock() {
+    return api.post('/parking/force-release-lock')
   }
 }
 

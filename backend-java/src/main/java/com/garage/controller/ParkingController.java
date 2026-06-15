@@ -50,4 +50,14 @@ public class ParkingController {
     public ApiResponse<Long> getAvailableSpots() {
         return parkingService.getAvailableSpotsCount();
     }
+
+    @GetMapping("/queue-status")
+    public ApiResponse<QueueStatusResponse> getQueueStatus(@RequestParam String requestId) {
+        return parkingService.getQueueStatus(requestId);
+    }
+
+    @PostMapping("/force-release-lock")
+    public ApiResponse<String> forceReleaseLock() {
+        return parkingService.forceReleaseLock();
+    }
 }

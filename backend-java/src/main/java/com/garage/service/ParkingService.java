@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class ParkingService {
@@ -31,50 +32,69 @@ public class ParkingService {
     @Autowired
     private GarageGatewayService garageGatewayService;
 
+    @Autowired
+    private GarageRotationLockService lockService;
+
     @Value("${garage.total-carriers:8}")
     private int totalCarriers;
+
+    private final ConcurrentHashMap<String, PickupResponse> pendingPickups = new ConcurrentHashMap<>();
 
     @Transactional
     public ApiResponse<ParkingSpot> parkCar(ParkRequest request) {
         log.info("Parking car: {}", request.getLicensePlate());
 
-        Optional<ParkingSpot> existingSpot = parkingSpotRepository.findByLicensePlateAndIsOccupiedTrue(request.getLicensePlate());
-        if (existingSpot.isPresent()) {
-            return ApiResponse.error(400, "该车牌号已存在停车记录");
+        GarageRotationLockService.LockResult lockResult = lockService.acquireLockOrEnqueue(request.getLicensePlate());
+        if (!lockResult.isAcquired()) {
+            return ApiResponse.error(409, "车库正在调车中，请等待后重试。当前排队位置: " + lockResult.getQueuePosition());
         }
 
-        List<ParkingSpot> emptySpots = parkingSpotRepository.findByIsOccupiedFalse();
-        if (emptySpots.isEmpty()) {
-            return ApiResponse.error(503, "车库已满，没有空闲车位");
+        try {
+            Optional<ParkingSpot> existingSpot = parkingSpotRepository.findByLicensePlateAndIsOccupiedTrue(request.getLicensePlate());
+            if (existingSpot.isPresent()) {
+                return ApiResponse.error(400, "该车牌号已存在停车记录");
+            }
+
+            List<ParkingSpot> emptySpots = parkingSpotRepository.findByIsOccupiedFalse();
+            if (emptySpots.isEmpty()) {
+                return ApiResponse.error(503, "车库已满，没有空闲车位");
+            }
+
+            ParkingSpot spot = emptySpots.get(0);
+
+            if (request.getCarWeightKg() != null && request.getCarWeightKg() > 2000.0) {
+                return ApiResponse.error(400, "车辆超重，最大限重2000kg");
+            }
+
+            spot.setLicensePlate(request.getLicensePlate());
+            spot.setIsOccupied(true);
+            spot.setParkTime(LocalDateTime.now());
+            spot.setCarWeightKg(request.getCarWeightKg() != null ? request.getCarWeightKg() : 1000.0);
+            spot.setCarModel(request.getCarModel());
+            spot.setOwnerName(request.getOwnerName());
+            spot.setOwnerPhone(request.getOwnerPhone());
+
+            parkingSpotRepository.save(spot);
+
+            ParkingRecord record = new ParkingRecord();
+            record.setLicensePlate(request.getLicensePlate());
+            record.setCarrierIndex(spot.getCarrierIndex());
+            record.setEntryTime(LocalDateTime.now());
+            record.setStatus("PARKED");
+            record.setCarWeightKg(spot.getCarWeightKg());
+            parkingRecordRepository.save(record);
+
+            log.info("Car parked at carrier index: {}", spot.getCarrierIndex());
+
+            return ApiResponse.success(spot);
+        } finally {
+            lockService.releaseLock(lockResult.getRequestId());
+
+            String nextRequestId = lockService.pollQueue();
+            if (nextRequestId != null) {
+                log.info("Dequeued next request={} after park completion", nextRequestId);
+            }
         }
-
-        ParkingSpot spot = emptySpots.get(0);
-
-        if (request.getCarWeightKg() != null && request.getCarWeightKg() > 2000.0) {
-            return ApiResponse.error(400, "车辆超重，最大限重2000kg");
-        }
-
-        spot.setLicensePlate(request.getLicensePlate());
-        spot.setIsOccupied(true);
-        spot.setParkTime(LocalDateTime.now());
-        spot.setCarWeightKg(request.getCarWeightKg() != null ? request.getCarWeightKg() : 1000.0);
-        spot.setCarModel(request.getCarModel());
-        spot.setOwnerName(request.getOwnerName());
-        spot.setOwnerPhone(request.getOwnerPhone());
-
-        parkingSpotRepository.save(spot);
-
-        ParkingRecord record = new ParkingRecord();
-        record.setLicensePlate(request.getLicensePlate());
-        record.setCarrierIndex(spot.getCarrierIndex());
-        record.setEntryTime(LocalDateTime.now());
-        record.setStatus("PARKED");
-        record.setCarWeightKg(spot.getCarWeightKg());
-        parkingRecordRepository.save(record);
-
-        log.info("Car parked at carrier index: {}", spot.getCarrierIndex());
-
-        return ApiResponse.success(spot);
     }
 
     @Transactional
@@ -93,11 +113,7 @@ public class ParkingService {
 
         CarrierRotationInfo rotationInfo = calculateRotation(spot.getCarrierIndex());
 
-        garageGatewayService.rotateToCarrier(
-                spot.getCarrierIndex(),
-                rotationInfo.getDirection(),
-                rotationInfo.getSteps()
-        );
+        GarageRotationLockService.LockResult lockResult = lockService.acquireLockOrEnqueue(request.getLicensePlate());
 
         PickupResponse response = new PickupResponse();
         response.setLicensePlate(spot.getLicensePlate());
@@ -109,7 +125,32 @@ public class ParkingService {
         response.setAmount(amount);
         response.setDurationMinutes(durationMinutes);
         response.setParkTime(spot.getParkTime());
+
+        if (!lockResult.isAcquired()) {
+            response.setStatus("QUEUED");
+            response.setRequestId(lockResult.getRequestId());
+            response.setQueuePosition(lockResult.getQueuePosition());
+            response.setCurrentHolder(lockResult.getCurrentHolder());
+
+            log.info("Pickup queued for plate={}, requestId={}, position={}",
+                    request.getLicensePlate(), lockResult.getRequestId(), lockResult.getQueuePosition());
+
+            pendingPickups.put(lockResult.getRequestId(), response);
+            return ApiResponse.success(response);
+        }
+
         response.setStatus("ROTATING");
+        response.setRequestId(lockResult.getRequestId());
+
+        garageGatewayService.rotateToCarrier(
+                lockResult.getRequestId(),
+                spot.getCarrierIndex(),
+                rotationInfo.getDirection(),
+                rotationInfo.getSteps()
+        );
+
+        log.info("Pickup rotation started for plate={}, requestId={}",
+                request.getLicensePlate(), lockResult.getRequestId());
 
         return ApiResponse.success(response);
     }
@@ -152,6 +193,39 @@ public class ParkingService {
         }
 
         return ApiResponse.error(500, "停车记录更新失败");
+    }
+
+    public ApiResponse<QueueStatusResponse> getQueueStatus(String requestId) {
+        QueueStatusResponse status = new QueueStatusResponse();
+        status.setRequestId(requestId);
+        status.setQueueSize(lockService.getQueueSize());
+        status.setLocked(lockService.isLocked());
+        status.setCurrentHolder(lockService.getCurrentHolder());
+
+        if (lockService.isLocked()) {
+            int position = lockService.getQueuePosition(requestId);
+            status.setQueuePosition(position);
+            if (position > 0) {
+                status.setStatus("QUEUED");
+            } else {
+                PickupResponse pending = pendingPickups.get(requestId);
+                if (pending != null && "ROTATING".equals(pending.getStatus())) {
+                    status.setStatus("ROTATING");
+                } else {
+                    status.setStatus("WAITING");
+                }
+            }
+        } else {
+            status.setStatus("IDLE");
+            status.setQueuePosition(0);
+        }
+
+        return ApiResponse.success(status);
+    }
+
+    public ApiResponse<String> forceReleaseLock() {
+        lockService.forceReleaseAll();
+        return ApiResponse.success("All locks released and queue cleared");
     }
 
     private CarrierRotationInfo calculateRotation(int targetCarrierIndex) {
